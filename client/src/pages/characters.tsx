@@ -73,14 +73,14 @@ export default function Characters() {
       const response = await apiRequest('POST', '/api/characters', characterData);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Invalidate all character queries
       queryClient.invalidateQueries({ queryKey: ['/api/characters'] });
       
       // Also invalidate the specific world characters query to ensure consistency
-      if (values.worldId) {
+      if (data.worldId) {
         queryClient.invalidateQueries({ 
-          queryKey: [`/api/worlds/${values.worldId}/characters`] 
+          queryKey: [`/api/worlds/${data.worldId}/characters`] 
         });
       }
       

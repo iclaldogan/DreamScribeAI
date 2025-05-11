@@ -101,8 +101,13 @@ export async function generateCharacterResponse(request: CharacterChatRequest): 
       .replace('{backstory}', request.character.backstory || 'Not specified')
       .replace('{memory}', memoryText);
     
+    // Extract the characterId from the request or the URL
+    const urlParts = window.location.pathname.split('/');
+    const characterId = urlParts[urlParts.length - 1]; // Get the last part of the URL which should be the character ID
+    
     // Make a request to the server, which will call Gemini API
     const response = await apiRequest('POST', '/api/generate-character-response', {
+      characterId: parseInt(characterId),
       prompt,
       userMessage: request.userMessage
     });

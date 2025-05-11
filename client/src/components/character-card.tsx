@@ -1,6 +1,23 @@
 import { Link } from "wouter";
 import { Character } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface CharacterCardProps {
   character: Character;
@@ -9,6 +26,45 @@ interface CharacterCardProps {
 }
 
 export default function CharacterCard({ character, compact = false, className }: CharacterCardProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isOpen, setIsOpen] = useState(false);
+  
+  // Delete character mutation
+  const deleteCharacterMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('DELETE', `/api/characters/${character.id}`);
+      return response;
+    },
+    onSuccess: () => {
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['/api/characters'] });
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/worlds/${character.worldId}/characters`] 
+      });
+      
+      toast({
+        title: "Character Deleted",
+        description: `${character.name} has been removed successfully.`,
+        duration: 3000,
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting character:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the character. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    },
+  });
+  
+  const handleDelete = () => {
+    deleteCharacterMutation.mutate();
+    setIsOpen(false);
+  };
+  
   const getCharacterImage = (role: string, name: string) => {
     // Return different profile images based on character role or name
     if (role.toLowerCase().includes('elf') || name.toLowerCase().includes('lyra')) {
