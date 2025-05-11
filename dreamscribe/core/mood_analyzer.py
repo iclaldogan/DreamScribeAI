@@ -1,225 +1,258 @@
-import re
+"""
+Dreamscribe AI - Mood Analyzer Module
+
+This module analyzes character responses to determine their emotional state,
+then provides mood information and associated color schemes.
+"""
 import os
+import json
 import google.generativeai as genai
-from dotenv import load_dotenv
+from django.conf import settings
+from django.utils import timezone
 
-# Load environment variables and set up the API
-load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# Configure the Gemini API
+genai.configure(api_key=settings.GEMINI_API_KEY)
 
-class MoodAnalyzer:
+# Base mood colors with different intensities
+MOOD_COLORS = {
+    'neutral': {
+        'primary': '#6B7280',  # Gray
+        'secondary': '#4B5563',
+        'accent': '#374151',
+        'text': '#F3F4F6'
+    },
+    'happy': {
+        'primary': '#FFB703',  # Golden Yellow
+        'secondary': '#FB8500',
+        'accent': '#FAA307',
+        'text': '#FFFFFF'
+    },
+    'excited': {
+        'primary': '#F59E0B',  # Amber
+        'secondary': '#D97706',
+        'accent': '#B45309',
+        'text': '#FFFFFF'
+    },
+    'angry': {
+        'primary': '#EF4444',  # Red
+        'secondary': '#DC2626',
+        'accent': '#B91C1C',
+        'text': '#FFFFFF'
+    },
+    'sad': {
+        'primary': '#3B82F6',  # Blue
+        'secondary': '#2563EB',
+        'accent': '#1D4ED8',
+        'text': '#FFFFFF'
+    },
+    'thoughtful': {
+        'primary': '#8B5CF6',  # Purple
+        'secondary': '#7C3AED',
+        'accent': '#6D28D9',
+        'text': '#FFFFFF'
+    },
+    'confused': {
+        'primary': '#10B981',  # Emerald
+        'secondary': '#059669',
+        'accent': '#047857',
+        'text': '#FFFFFF'
+    },
+    'scared': {
+        'primary': '#EC4899',  # Pink
+        'secondary': '#DB2777',
+        'accent': '#BE185D',
+        'text': '#FFFFFF'
+    }
+}
+
+def adjust_color_intensity(hex_color, intensity_factor):
     """
-    Analyzes text to determine emotion/mood and intensity
-    """
+    Adjust color intensity based on the mood intensity
     
-    MOOD_COLORS = {
-        'neutral': {
-            'primary': '#6B7280',  # gray-500
-            'secondary': '#9CA3AF',  # gray-400
-            'accent': '#D1D5DB',  # gray-300
-            'text': '#F3F4F6',  # gray-100
-        },
-        'happy': {
-            'primary': '#FBBF24',  # yellow-400
-            'secondary': '#F59E0B',  # amber-500
-            'accent': '#FCD34D',  # yellow-300
-            'text': '#FFFBEB',  # yellow-50
-        },
-        'sad': {
-            'primary': '#60A5FA',  # blue-400
-            'secondary': '#3B82F6',  # blue-500
-            'accent': '#93C5FD',  # blue-300
-            'text': '#EFF6FF',  # blue-50
-        },
-        'angry': {
-            'primary': '#F87171',  # red-400
-            'secondary': '#EF4444',  # red-500
-            'accent': '#FCA5A5',  # red-300
-            'text': '#FEF2F2',  # red-50
-        },
-        'excited': {
-            'primary': '#34D399',  # emerald-400
-            'secondary': '#10B981',  # emerald-500
-            'accent': '#6EE7B7',  # emerald-300
-            'text': '#ECFDF5',  # emerald-50
-        },
-        'thoughtful': {
-            'primary': '#A78BFA',  # violet-400
-            'secondary': '#8B5CF6',  # violet-500
-            'accent': '#C4B5FD',  # violet-300
-            'text': '#F5F3FF',  # violet-50
-        },
-        'confused': {
-            'primary': '#FB923C',  # orange-400
-            'secondary': '#F97316',  # orange-500
-            'accent': '#FDBA74',  # orange-300
-            'text': '#FFF7ED',  # orange-50
-        },
-        'scared': {
-            'primary': '#C084FC',  # purple-400
-            'secondary': '#A855F7',  # purple-500
-            'accent': '#D8B4FE',  # purple-300
-            'text': '#FAF5FF',  # purple-50
+    Args:
+        hex_color: The base hex color
+        intensity_factor: Factor to adjust (0-1, where 1 is full intensity)
+        
+    Returns:
+        New hex color with adjusted intensity
+    """
+    # Convert hex to RGB
+    hex_color = hex_color.lstrip('#')
+    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+    
+    # Get background color for blending (assuming dark theme)
+    bg_r, bg_g, bg_b = 30, 30, 35  # Dark background
+    
+    # Blend with background based on intensity
+    new_r = int(r * intensity_factor + bg_r * (1 - intensity_factor))
+    new_g = int(g * intensity_factor + bg_g * (1 - intensity_factor))
+    new_b = int(b * intensity_factor + bg_b * (1 - intensity_factor))
+    
+    # Convert back to hex
+    return f'#{new_r:02x}{new_g:02x}{new_b:02x}'
+
+def get_mood_colors(mood, intensity):
+    """
+    Get color scheme for a specific mood with adjusted intensity
+    
+    Args:
+        mood: The mood name (string)
+        intensity: The intensity value (0-100)
+        
+    Returns:
+        Dict with color values
+    """
+    if mood not in MOOD_COLORS:
+        mood = 'neutral'
+        
+    # Get base colors for this mood
+    base_colors = MOOD_COLORS[mood]
+    
+    # Calculate intensity factor (0-1)
+    intensity_factor = min(max(intensity / 100, 0), 1)
+    
+    # Only adjust if intensity is less than 100%
+    if intensity_factor < 1:
+        return {
+            'primary': adjust_color_intensity(base_colors['primary'], intensity_factor),
+            'secondary': adjust_color_intensity(base_colors['secondary'], intensity_factor),
+            'accent': adjust_color_intensity(base_colors['accent'], intensity_factor),
+            'text': base_colors['text']
         }
+    
+    return base_colors
+
+def analyze_character_mood(text, character_info=None):
+    """
+    Analyze text to determine character's mood
+    
+    Args:
+        text: The character's response text
+        character_info: Optional dict with character information
+        
+    Returns:
+        Dict with mood information
+    """
+    # Default response in case API call fails
+    default_response = {
+        'mood': 'neutral',
+        'intensity': 50,
+        'explanation': 'No mood detected.'
     }
     
-    @classmethod
-    def analyze_with_gemini(cls, text):
-        """
-        Use Gemini AI to analyze mood in text
+    try:
+        # Prepare prompt for Gemini
+        prompt = f"""
+        Analyze the emotional state/mood in this character response:
         
-        Args:
-            text: The text to analyze
-            
-        Returns:
-            tuple: (mood, intensity)
+        "{text}"
+        
+        Respond with a JSON object with the following structure:
+        {{
+            "mood": "one of [happy, sad, angry, excited, thoughtful, confused, scared, neutral]",
+            "intensity": "number between 0-100 representing the intensity of the mood",
+            "explanation": "brief explanation of why you determined this mood"
+        }}
+        
+        Only output the JSON object, nothing else.
         """
-        try:
-            prompt = f"""
-            Analyze the following text and determine the emotional mood expressed.
-            Choose the most fitting mood from these options only: neutral, happy, sad, angry, excited, thoughtful, confused, scared.
-            Also rate the intensity of this mood on a scale of 1-100 where 1 is barely detectable and 100 is extremely intense.
+        
+        if character_info:
+            prompt += f"""
             
-            Return your answer in this exact format:
-            MOOD: [mood]
-            INTENSITY: [number]
-            
-            Text to analyze:
-            "{text}"
+            Additional character context:
+            - Name: {character_info.get('name', 'Unknown')}
+            - Personality: {character_info.get('personality', 'Not provided')}
+            - Base temperament: {character_info.get('temperament', 'Not provided')}
             """
+        
+        # Get response from Gemini
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(prompt)
+        response_text = response.text
+        
+        # Try to parse the JSON response
+        try:
+            # Find JSON object in the response
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}') + 1
             
-            model = genai.GenerativeModel('gemini-1.5-pro')
-            response = model.generate_content(prompt)
-            
-            # Extract mood and intensity from response
-            response_text = response.text.strip()
-            
-            mood_match = re.search(r'MOOD:\s*(\w+)', response_text)
-            intensity_match = re.search(r'INTENSITY:\s*(\d+)', response_text)
-            
-            if mood_match and intensity_match:
-                mood = mood_match.group(1).lower()
-                intensity = int(intensity_match.group(1))
+            if json_start >= 0 and json_end > json_start:
+                json_str = response_text[json_start:json_end]
+                mood_data = json.loads(json_str)
                 
-                # Ensure mood is one of our valid options
-                if mood not in cls.MOOD_COLORS:
-                    mood = 'neutral'
-                
-                # Ensure intensity is within valid range
-                intensity = max(1, min(100, intensity))
-                
-                return mood, intensity
-            
-            return 'neutral', 50
-            
-        except Exception as e:
-            print(f"Error analyzing mood: {e}")
-            return 'neutral', 50
-    
-    @classmethod
-    def analyze_with_keywords(cls, text):
-        """
-        Fallback method using keyword matching when Gemini API is unavailable
-        
-        Args:
-            text: The text to analyze
-            
-        Returns:
-            tuple: (mood, intensity)
-        """
-        text = text.lower()
-        
-        # Dictionary mapping moods to keywords and their intensity multipliers
-        mood_keywords = {
-            'happy': ['happy', 'joy', 'excited', 'delighted', 'pleased', 'glad', 'smile', 'laugh', 'wonderful', 'great'],
-            'sad': ['sad', 'unhappy', 'depressed', 'miserable', 'sorrow', 'grief', 'tears', 'crying', 'disappointed'],
-            'angry': ['angry', 'mad', 'furious', 'rage', 'outraged', 'annoyed', 'irritated', 'frustrated'],
-            'excited': ['excited', 'thrilled', 'enthusiastic', 'eager', 'energetic', 'pumped', 'psyched'],
-            'thoughtful': ['thoughtful', 'pensive', 'contemplative', 'reflective', 'thinking', 'consider', 'wonder'],
-            'confused': ['confused', 'puzzled', 'perplexed', 'uncertain', 'unsure', 'bewildered', 'baffled'],
-            'scared': ['scared', 'afraid', 'frightened', 'terrified', 'fearful', 'anxious', 'worried', 'nervous']
-        }
-        
-        # Intensity modifier keywords
-        intensity_modifiers = {
-            'very': 1.5,
-            'extremely': 2.0,
-            'somewhat': 0.7,
-            'slightly': 0.5,
-            'really': 1.7,
-            'incredibly': 2.0
-        }
-        
-        # Check matches for each mood
-        mood_scores = {mood: 0 for mood in mood_keywords.keys()}
-        
-        for mood, keywords in mood_keywords.items():
-            base_score = 0
-            for keyword in keywords:
-                if keyword in text:
-                    # Find modifier words before the keyword
-                    for modifier, multiplier in intensity_modifiers.items():
-                        pattern = rf"{modifier}\s+\w*\s*{keyword}"
-                        if re.search(pattern, text):
-                            base_score += 50 * multiplier
-                            break
+                # Validate the response
+                if 'mood' in mood_data and 'intensity' in mood_data:
+                    # Ensure mood is a valid option
+                    valid_moods = ['happy', 'sad', 'angry', 'excited', 'thoughtful', 'confused', 'scared', 'neutral']
+                    if mood_data['mood'].lower() not in valid_moods:
+                        mood_data['mood'] = 'neutral'
                     else:
-                        base_score += 50  # Default score for unmodified keyword
-            
-            mood_scores[mood] = base_score
+                        mood_data['mood'] = mood_data['mood'].lower()
+                    
+                    # Ensure intensity is in range 0-100
+                    mood_data['intensity'] = min(max(float(mood_data['intensity']), 0), 100)
+                    
+                    # Get colors based on mood and intensity
+                    mood_data['colors'] = get_mood_colors(mood_data['mood'], mood_data['intensity'])
+                    
+                    return mood_data
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Error parsing mood analysis response: {e}")
+            print(f"Response was: {response_text}")
         
-        # Determine the mood with the highest score
-        if all(score == 0 for score in mood_scores.values()):
-            return 'neutral', 50
+        return default_response
         
-        highest_mood = max(mood_scores.items(), key=lambda x: x[1])
-        mood = highest_mood[0]
-        
-        # Calculate intensity (scale to 1-100)
-        intensity = min(100, highest_mood[1])
-        intensity = max(1, intensity)
-        
-        return mood, intensity
+    except Exception as e:
+        print(f"Error in mood analysis: {e}")
+        return default_response
+
+def update_character_mood(character, text):
+    """
+    Update a character's mood based on their response
     
-    @classmethod
-    def get_mood_colors(cls, mood, intensity=None):
-        """
-        Return color values for a given mood and intensity
+    Args:
+        character: Character model instance
+        text: The character's response text
         
-        Args:
-            mood: The mood string
-            intensity: Optional intensity value (1-100)
-            
-        Returns:
-            dict: Color values for the mood
-        """
-        if mood not in cls.MOOD_COLORS:
-            mood = 'neutral'
-            
-        colors = cls.MOOD_COLORS[mood].copy()
-        
-        # Adjust colors based on intensity if provided
-        if intensity is not None:
-            # Normalize intensity between 0.5 and 1.5 to adjust color brightness
-            normalized = 0.5 + (intensity / 100)
-            
-            # Helper function to adjust color brightness
-            def adjust_color(hex_color, factor):
-                # Convert hex to RGB
-                r = int(hex_color[1:3], 16)
-                g = int(hex_color[3:5], 16)
-                b = int(hex_color[5:7], 16)
-                
-                # Adjust brightness
-                r = min(255, int(r * factor))
-                g = min(255, int(g * factor))
-                b = min(255, int(b * factor))
-                
-                # Convert back to hex
-                return f'#{r:02x}{g:02x}{b:02x}'
-            
-            # Adjust all colors
-            for key in colors:
-                colors[key] = adjust_color(colors[key], normalized)
-                
-        return colors
+    Returns:
+        Updated character
+    """
+    # Get character info for context
+    character_info = {
+        'name': character.name,
+        'personality': character.personality
+    }
+    
+    # Analyze mood
+    mood_data = analyze_character_mood(text, character_info)
+    
+    # Update character's mood
+    character.current_mood = mood_data['mood']
+    character.mood_intensity = int(mood_data['intensity'])
+    
+    # If character memory is missing a mood_history array, create it
+    if not character.memory:
+        character.memory = {}
+    
+    if 'mood_history' not in character.memory:
+        character.memory['mood_history'] = []
+    
+    # Add to mood history (limit to last 10)
+    mood_entry = {
+        'mood': mood_data['mood'],
+        'intensity': mood_data['intensity'],
+        'timestamp': str(timezone.now().isoformat()),
+        'trigger_text': text[:100] + '...' if len(text) > 100 else text
+    }
+    
+    character.memory['mood_history'].append(mood_entry)
+    
+    # Keep only the last 10 entries
+    if len(character.memory['mood_history']) > 10:
+        character.memory['mood_history'] = character.memory['mood_history'][-10:]
+    
+    # Save the character
+    character.save()
+    
+    return character
