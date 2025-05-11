@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 273 61% 29%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 39 77% 52%;
+  --secondary-foreground: 240 10% 3.9%;
+  --accent: 20 100% 65%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+  --radius: 0.5rem;
+
+  /* Additional custom colors */
+  --sidebar-background: 240 10% 5.9%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 39 77% 52%;
+  --sidebar-primary-foreground: 240 10% 3.9%;
+  --sidebar-accent: 20 100% 65%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 240 4.9% 83.9%;
+
+  /* Chart colors */
+  --chart-1: 39 77% 52%;
+  --chart-2: 20 100% 65%;
+  --chart-3: 273 61% 29%;
+  --chart-4: 210 50% 40%;
+  --chart-5: 120 50% 40%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    background-image: url('https://images.unsplash.com/photo-1534447677768-be436bb09401?ixlib=rb-1.2.1&auto=format&fit=crop&w=1600&h=900');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    background-blend-mode: overlay;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cinzel', serif;
+  }
+}
+
+@layer components {
+  .glassmorphism {
+    @apply bg-background/60 backdrop-blur-md border border-white/10;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px hsl(var(--secondary) / 0.7), 0 0 20px hsl(var(--secondary) / 0.5);
+  }
+
+  .orange-glow {
+    box-shadow: 0 0 15px hsl(var(--accent) / 0.7), 0 0 30px hsl(var(--accent) / 0.4);
+  }
+
+  .yellow-glow {
+    box-shadow: 0 0 15px hsl(var(--secondary) / 0.7), 0 0 30px hsl(var(--secondary) / 0.4);
+  }
+
+  .purple-glow {
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.7), 0 0 30px hsl(var(--primary) / 0.4);
+  }
+
+  .scroll-container {
+    @apply relative rounded-lg p-10;
+    background-image: url('https://pixabay.com/get/g2fdef8bf4ad4f53858d60e25f7cf7be0d4c2ffa249f7cd71d1740934f778cec815d5870af9143719d1a83a8a4de0e6dfa8c6d1b16ee22889f538adb3b3b49846_1280.jpg');
+    background-size: cover;
+  }
+
+  .scroll-container::before {
+    content: '';
+    @apply absolute inset-0 bg-[#f5edd7]/90 rounded-lg -z-10;
+  }
+
+  .sidebar-icon {
+    @apply transition-all duration-300;
+  }
+
+  .sidebar-icon:hover {
+    @apply transform -translate-y-1;
+  }
+
+  .active-nav {
+    @apply border-l-2 border-accent text-accent;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background/50;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-secondary rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-accent;
+}
+
+/* Animation classes */
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px rgba(230, 179, 37, 0.5), 0 0 10px rgba(230, 179, 37, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(230, 179, 37, 0.8), 0 0 20px rgba(230, 179, 37, 0.5), 0 0 30px rgba(230, 179, 37, 0.3);
+  }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
+}
