@@ -1,170 +1,192 @@
 /**
- * Dreamscribe AI - Character Mood Visualizer
+ * Dreamscribe AI - Mood Visualizer
  * 
- * This utility provides dynamic UI color changes based on character mood states
+ * This script handles the visualization of character moods in the UI.
+ * It updates element classes and styles based on character mood changes.
  */
 
-class MoodVisualizer {
-    constructor(characterId, options = {}) {
-        this.characterId = characterId;
-        this.options = {
-            updateInterval: options.updateInterval || 10000, // 10 seconds by default
-            elements: options.elements || {}, // Elements to update
-            onMoodChange: options.onMoodChange || null, // Callback when mood changes
-            initialMood: options.initialMood || 'neutral',
-            initialIntensity: options.initialIntensity || 50,
-            apiEndpoint: `/api/character/${characterId}/mood/`,
-        };
-        
-        this.currentMood = this.options.initialMood;
-        this.currentIntensity = this.options.initialIntensity;
-        this.colors = {};
-        this.interval = null;
-        
-        this.init();
-    }
+/**
+ * Initialize the mood visualizer
+ * 
+ * @param {number} characterId - The ID of the character to monitor
+ * @param {object} options - Configuration options
+ * @param {string} options.initialMood - The initial mood of the character
+ * @param {number} options.initialIntensity - The initial intensity of the character's mood (0-100)
+ * @param {number} options.updateInterval - Interval in milliseconds to check for mood updates (default: 10000)
+ * @returns {object} - The mood visualizer instance
+ */
+function initMoodVisualizer(characterId, options = {}) {
+    const defaults = {
+        initialMood: 'neutral',
+        initialIntensity: 50,
+        updateInterval: 10000, // 10 seconds
+    };
     
-    init() {
-        // Initial fetch
-        this.fetchMoodData();
+    const config = { ...defaults, ...options };
+    
+    // State
+    let currentMood = config.initialMood;
+    let currentIntensity = config.initialIntensity;
+    let updateTimer = null;
+    
+    // Elements to update
+    const moodElements = document.querySelectorAll(`.mood-${currentMood}`);
+    const moodIndicators = document.querySelectorAll('.mood-indicator');
+    const moodBadges = document.querySelectorAll('.mood-badge');
+    
+    // Color mappings
+    const moodColors = {
+        neutral: '#A0A0A0',  // Gray
+        happy: '#FFD700',    // Gold
+        sad: '#6495ED',      // Cornflower Blue
+        angry: '#FF4500',    // Red-Orange
+        fearful: '#800080',  // Purple
+        curious: '#32CD32',  // Lime Green
+        excited: '#FF1493',  // Deep Pink
+        thoughtful: '#4682B4', // Steel Blue
+        confused: '#FF8C00',  // Dark Orange
+    };
+    
+    /**
+     * Update the mood visualization based on current mood and intensity
+     */
+    function updateMoodVisuals() {
+        // Update mood classes on elements
+        moodElements.forEach(el => {
+            // Remove all mood classes
+            Object.keys(moodColors).forEach(mood => {
+                el.classList.remove(`mood-${mood}`);
+            });
+            
+            // Add current mood class
+            el.classList.add(`mood-${currentMood}`);
+            
+            // Apply custom styles based on intensity
+            if (currentMood !== 'neutral') {
+                const color = moodColors[currentMood] || moodColors.neutral;
+                const opacity = Math.max(0.2, Math.min(0.8, currentIntensity / 100));
+                
+                // Apply a subtle glow effect based on mood and intensity
+                el.style.boxShadow = `0 0 ${Math.round(currentIntensity / 10)}px ${color}`;
+                
+                // For avatar elements, add a slight border color
+                if (el.classList.contains('character-avatar') || el.classList.contains('chat-avatar')) {
+                    el.style.borderColor = color;
+                }
+            } else {
+                // Reset styles for neutral mood
+                el.style.boxShadow = '';
+                el.style.borderColor = '';
+            }
+        });
         
-        // Set up interval for regular updates
-        if (this.options.updateInterval > 0) {
-            this.interval = setInterval(() => {
-                this.fetchMoodData();
-            }, this.options.updateInterval);
-        }
+        // Update mood indicators
+        moodIndicators.forEach(indicator => {
+            if (currentMood === 'neutral') {
+                indicator.style.display = 'none';
+            } else {
+                indicator.style.display = 'inline-block';
+                indicator.style.backgroundColor = moodColors[currentMood];
+                
+                // Pulsing animation based on intensity
+                const animationDuration = Math.max(1.5, 4 - (currentIntensity / 33)); // 1.5s to 4s
+                indicator.style.animation = `pulse ${animationDuration}s infinite`;
+            }
+        });
         
-        // Set up event listeners
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                this.fetchMoodData(); // Update immediately when tab becomes visible
+        // Update mood badges
+        moodBadges.forEach(badge => {
+            const moodText = badge.textContent.trim().toLowerCase();
+            if (moodText === currentMood) {
+                badge.style.display = 'inline-flex';
+                badge.style.backgroundColor = `rgba(${hexToRgb(moodColors[currentMood])}, 0.1)`;
+                badge.style.color = moodColors[currentMood];
+                
+                const iconElement = badge.querySelector('.mood-badge-icon');
+                if (iconElement) {
+                    iconElement.style.backgroundColor = moodColors[currentMood];
+                }
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+        
+        // Update any mood intensity indicators
+        const intensityBars = document.querySelectorAll('.mood-intensity-bar');
+        intensityBars.forEach(bar => {
+            const fillElement = bar.querySelector('.mood-intensity-fill');
+            if (fillElement) {
+                fillElement.style.width = `${currentIntensity}%`;
+                fillElement.style.backgroundColor = moodColors[currentMood];
             }
         });
     }
     
-    fetchMoodData() {
-        fetch(this.options.apiEndpoint)
+    /**
+     * Convert hex color to RGB
+     */
+    function hexToRgb(hex) {
+        // Remove # if present
+        hex = hex.replace('#', '');
+        
+        // Parse the hex values
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        
+        return `${r}, ${g}, ${b}`;
+    }
+    
+    /**
+     * Check for mood updates from the server
+     */
+    function checkMoodUpdates() {
+        fetch(`/api/characters/${characterId}/mood`)
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    const newMood = data.mood;
-                    const newIntensity = data.intensity;
-                    
-                    // Only update if mood or intensity changed
-                    if (newMood !== this.currentMood || newIntensity !== this.currentIntensity) {
-                        this.updateMoodUI(newMood, newIntensity, data.colors);
-                    }
+                if (data.mood !== currentMood || data.intensity !== currentIntensity) {
+                    currentMood = data.mood;
+                    currentIntensity = data.intensity;
+                    updateMoodVisuals();
                 }
             })
             .catch(error => {
-                console.error('Error fetching mood data:', error);
+                console.error('Error checking mood updates:', error);
             });
     }
     
-    updateMoodUI(mood, intensity, colors) {
-        const oldMood = this.currentMood;
-        const oldIntensity = this.currentIntensity;
-        
-        // Update current state
-        this.currentMood = mood;
-        this.currentIntensity = intensity;
-        this.colors = colors;
-        
-        // Update CSS variables
-        document.documentElement.style.setProperty('--color-primary', colors.primary);
-        document.documentElement.style.setProperty('--color-secondary', colors.secondary);
-        document.documentElement.style.setProperty('--color-accent', colors.accent);
-        document.documentElement.style.setProperty('--color-text', colors.text);
-        
-        // Convert hex to RGB for CSS variables
-        const primaryRgb = this.hexToRgb(colors.primary);
-        if (primaryRgb) {
-            document.documentElement.style.setProperty(
-                '--color-primary-rgb', 
-                `${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}`
-            );
-        }
-        
-        // Update mood indicator elements
-        if (this.options.elements.moodLabel) {
-            const label = document.querySelector(this.options.elements.moodLabel);
-            if (label) {
-                label.textContent = mood.charAt(0).toUpperCase() + mood.slice(1);
-                label.classList.remove(`mood-${oldMood}`);
-                label.classList.add(`mood-${mood}`);
+    // Initial update
+    updateMoodVisuals();
+    
+    // Set up periodic updates
+    if (config.updateInterval > 0) {
+        updateTimer = setInterval(checkMoodUpdates, config.updateInterval);
+    }
+    
+    // Public API
+    return {
+        getCurrentMood: () => currentMood,
+        getCurrentIntensity: () => currentIntensity,
+        updateMood: (mood, intensity) => {
+            currentMood = mood;
+            currentIntensity = intensity;
+            updateMoodVisuals();
+        },
+        stopUpdates: () => {
+            if (updateTimer) {
+                clearInterval(updateTimer);
+                updateTimer = null;
             }
         }
-        
-        if (this.options.elements.intensityBar) {
-            const bar = document.querySelector(this.options.elements.intensityBar);
-            if (bar) {
-                bar.style.width = `${intensity}%`;
-                bar.style.backgroundColor = colors.primary;
-            }
-        }
-        
-        // Apply color transition effects
-        document.body.classList.add('color-transition');
-        setTimeout(() => {
-            document.body.classList.remove('color-transition');
-        }, 1000);
-        
-        // Call the callback if provided
-        if (typeof this.options.onMoodChange === 'function') {
-            this.options.onMoodChange(mood, intensity, oldMood, oldIntensity);
-        }
-    }
-    
-    // Analyze text to determine mood
-    analyzeText(text) {
-        return fetch(this.options.apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': this.getCsrfToken(),
-            },
-            body: new URLSearchParams({
-                'text': text
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                this.updateMoodUI(data.mood, data.intensity, data.colors);
-                return data;
-            }
-            return null;
-        })
-        .catch(error => {
-            console.error('Error analyzing mood:', error);
-            return null;
-        });
-    }
-    
-    // Helper function to get CSRF token
-    getCsrfToken() {
-        return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
-    }
-    
-    // Helper to convert hex to RGB
-    hexToRgb(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16)
-        } : null;
-    }
-    
-    destroy() {
-        if (this.interval) {
-            clearInterval(this.interval);
-        }
-    }
+    };
 }
 
-// Helper function to create a visualizer instance
-function initMoodVisualizer(characterId, options = {}) {
-    return new MoodVisualizer(characterId, options);
-}
+// Make the function available globally
+window.initMoodVisualizer = initMoodVisualizer;
+window.updateCharacterMood = function(mood, intensity) {
+    // This function can be called from AJAX responses to update the mood without waiting
+    // for the regular update interval
+    if (window.moodVisualizer) {
+        window.moodVisualizer.updateMood(mood, intensity);
+    }
+};
