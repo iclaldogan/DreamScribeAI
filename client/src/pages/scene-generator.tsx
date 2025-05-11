@@ -399,78 +399,82 @@ export default function SceneGenerator() {
             <div>
               <h3 className="text-lg font-bold text-secondary mb-3">Style Options</h3>
               <div className="glassmorphism rounded-lg p-4 text-neutral-light space-y-4">
-                <FormField
-                  control={form.control}
-                  name="styleType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-secondary font-bold">Writing Style</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-neutral-dark/40 text-neutral-light border-secondary/20">
-                            <SelectValue placeholder="Select style" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Novel - Descriptive">Novel - Descriptive</SelectItem>
-                          <SelectItem value="Script - Dialogue Heavy">Script - Dialogue Heavy</SelectItem>
-                          <SelectItem value="Short Story - Concise">Short Story - Concise</SelectItem>
-                          <SelectItem value="Epic Fantasy">Epic Fantasy</SelectItem>
-                          <SelectItem value="Noir Detective">Noir Detective</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="tone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-secondary font-bold">Tone</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-neutral-dark/40 text-neutral-light border-secondary/20">
-                            <SelectValue placeholder="Select tone" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Dramatic">Dramatic</SelectItem>
-                          <SelectItem value="Humorous">Humorous</SelectItem>
-                          <SelectItem value="Dark">Dark</SelectItem>
-                          <SelectItem value="Whimsical">Whimsical</SelectItem>
-                          <SelectItem value="Suspenseful">Suspenseful</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="length"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-secondary font-bold">Length</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-neutral-dark/40 text-neutral-light border-secondary/20">
-                            <SelectValue placeholder="Select length" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Short (250 words)">Short (250 words)</SelectItem>
-                          <SelectItem value="Medium (500 words)">Medium (500 words)</SelectItem>
-                          <SelectItem value="Long (1000 words)">Long (1000 words)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <Form {...form}>
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="styleType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-secondary font-bold">Writing Style</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-neutral-dark/40 text-neutral-light border-secondary/20">
+                                <SelectValue placeholder="Select style" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Novel - Descriptive">Novel - Descriptive</SelectItem>
+                              <SelectItem value="Script - Dialogue Heavy">Script - Dialogue Heavy</SelectItem>
+                              <SelectItem value="Short Story - Concise">Short Story - Concise</SelectItem>
+                              <SelectItem value="Epic Fantasy">Epic Fantasy</SelectItem>
+                              <SelectItem value="Noir Detective">Noir Detective</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="tone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-secondary font-bold">Tone</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-neutral-dark/40 text-neutral-light border-secondary/20">
+                                <SelectValue placeholder="Select tone" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Dramatic">Dramatic</SelectItem>
+                              <SelectItem value="Humorous">Humorous</SelectItem>
+                              <SelectItem value="Dark">Dark</SelectItem>
+                              <SelectItem value="Whimsical">Whimsical</SelectItem>
+                              <SelectItem value="Suspenseful">Suspenseful</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="length"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-secondary font-bold">Length</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-neutral-dark/40 text-neutral-light border-secondary/20">
+                                <SelectValue placeholder="Select length" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Short (250 words)">Short (250 words)</SelectItem>
+                              <SelectItem value="Medium (500 words)">Medium (500 words)</SelectItem>
+                              <SelectItem value="Long (1000 words)">Long (1000 words)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </Form>
               </div>
               
               <div className="mt-6">
