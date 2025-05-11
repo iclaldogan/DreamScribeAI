@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Sidebar } from "./ui/sidebar";
 import { MobileNavbar } from "./ui/mobile-navbar";
-import { Search, Menu } from "lucide-react";
+import { Search, Menu, Compass, Globe, UserCircle, MessageCircle, Feather } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface LayoutProps {
