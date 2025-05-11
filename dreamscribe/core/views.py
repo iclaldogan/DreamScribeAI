@@ -9,6 +9,7 @@ from django.db.models import Count
 from .models import World, Character, Scene, ChatMessage, ActivityLog
 from .forms import WorldForm, CharacterForm, SceneForm, ChatMessageForm, SceneGeneratorForm, SignUpForm
 from .gemini_api import generate_character_response, generate_scene
+from .mood_analyzer import MoodAnalyzer
 
 def home(request):
     """Landing page"""
@@ -395,3 +396,47 @@ def delete_scene(request, scene_id):
         return redirect('scene_list', world_id=world.id)
         
     return render(request, 'core/delete_scene.html', {'scene': scene})
+
+@login_required
+def character_mood_api(request, character_id):
+    """AJAX endpoint for getting character mood information"""
+    character = get_object_or_404(Character, id=character_id, world__user=request.user)
+    
+    # Get the mood colors
+    colors = MoodAnalyzer.get_mood_colors(character.current_mood, character.mood_intensity)
+    
+    # Manually analyze new text if provided
+    if request.method == 'POST' and request.POST.get('text'):
+        try:
+            text = request.POST.get('text')
+            mood, intensity = MoodAnalyzer.analyze_with_gemini(text)
+            
+            # Update character's mood
+            character.current_mood = mood
+            character.mood_intensity = intensity
+            character.save()
+            
+            # Get updated colors
+            colors = MoodAnalyzer.get_mood_colors(mood, intensity)
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Mood updated successfully',
+                'mood': mood,
+                'intensity': intensity,
+                'colors': colors
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Error analyzing mood: {str(e)}'
+            }, status=400)
+    
+    # For GET requests, just return current mood info
+    return JsonResponse({
+        'success': True,
+        'mood': character.current_mood,
+        'intensity': character.mood_intensity,
+        'colors': colors
+    })

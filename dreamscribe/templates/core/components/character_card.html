@@ -1,0 +1,88 @@
+{% load static %}
+
+<div class="character-card glassmorphism p-4 relative overflow-hidden" 
+     data-character-id="{{ character.id }}"
+     {% if character.current_mood != 'neutral' %}
+     style="border-color: var(--color-primary); box-shadow: 0 0 15px rgba(var(--color-primary-rgb), 0.3);"
+     {% endif %}>
+    
+    {% if character.current_mood != 'neutral' %}
+    <!-- Mood indicator -->
+    <div class="absolute top-0 right-0 w-0 h-0 border-t-16 border-r-16 
+                border-solid" style="border-color: transparent var(--color-primary) transparent transparent;"></div>
+    {% endif %}
+    
+    <div class="flex items-center mb-4">
+        <div class="character-avatar mr-4 flex-shrink-0" 
+             style="background-image: url('{% static 'core/img/default-avatar.svg' %}'); width: 70px; height: 70px; border-radius: 35px; background-size: cover; background-position: center; border: 2px solid {% if character.current_mood != 'neutral' %}var(--color-primary){% else %}#6B7280{% endif %};">
+        </div>
+        
+        <div>
+            <h3 class="text-lg font-bold" style="{% if character.current_mood != 'neutral' %}color: var(--color-primary);{% endif %}">
+                {{ character.name }}
+                
+                {% if character.current_mood != 'neutral' %}
+                <span class="mood-indicator inline-block h-2 w-2 rounded-full ml-1" 
+                      style="background-color: var(--color-primary);"></span>
+                {% endif %}
+            </h3>
+            <p class="text-sm opacity-70">{{ character.role }}</p>
+            
+            {% if character.current_mood != 'neutral' %}
+            <div class="text-xs opacity-80 capitalize mt-1" style="color: var(--color-primary);">
+                {{ character.current_mood }}
+                {% if character.mood_intensity > 75 %}
+                    (Very Intense)
+                {% elif character.mood_intensity > 50 %}
+                    (Intense)
+                {% elif character.mood_intensity > 25 %}
+                    (Moderate)
+                {% else %}
+                    (Mild)
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="text-sm mb-4" style="{% if character.current_mood != 'neutral' %}border-left: 2px solid var(--color-primary); padding-left: 0.5rem;{% endif %}">
+        {{ character.personality|truncatechars:100 }}
+    </div>
+    
+    <div class="flex justify-between items-center">
+        <a href="{% url 'character_detail' character.id %}" class="text-xs" 
+          style="{% if character.current_mood != 'neutral' %}color: var(--color-primary);{% endif %}">View Details</a>
+        <a href="{% url 'character_chat' character.id %}" 
+           class="py-1 px-3 rounded text-sm hover:scale-105 transition-transform" 
+           style="{% if character.current_mood != 'neutral' %}background-color: var(--color-primary); color: var(--color-background);{% else %}background-color: #4B5563; color: #F3F4F6;{% endif %}">
+            Chat Now
+        </a>
+    </div>
+    
+    <!-- Dynamic mood gradient background overlay -->
+    {% if character.current_mood != 'neutral' and character.mood_intensity > 60 %}
+    <div class="absolute inset-0 pointer-events-none z-[-1] opacity-15" 
+         style="background: radial-gradient(circle at top right, var(--color-primary) 0%, transparent 70%);"></div>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize character cards
+        const characterCard = document.querySelector('[data-character-id="{{ character.id }}"]');
+        if (characterCard) {
+            // Set up CSS variables for this specific card
+            const cardElement = characterCard;
+            
+            {% if character.current_mood != 'neutral' %}
+            // Get RGB values for primary color
+            const primaryColorHex = '{{ mood_colors.primary }}';
+            const rgbValues = hexToRgb(primaryColorHex);
+            
+            if (rgbValues) {
+                cardElement.style.setProperty('--color-primary-rgb', `${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}`);
+            }
+            {% endif %}
+        }
+    });
+</script>
