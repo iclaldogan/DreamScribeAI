@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Characters | DreamScribe AI{% endblock %}
+
+{% block extra_css %}
+<style>
+    .character-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .character-card {
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .character-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .filter-chip {
+        background-color: rgba(var(--color-primary-rgb), 0.2);
+        color: var(--color-primary);
+        border: 1px solid var(--color-primary);
+        border-radius: 16px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        margin-right: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .filter-chip:hover {
+        background-color: rgba(var(--color-primary-rgb), 0.3);
+    }
+    
+    .filter-chip.active {
+        background-color: var(--color-primary);
+        color: var(--color-background);
+    }
+    
+    .mood-filter-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-secondary">Characters</h1>
+        <p class="text-neutral-light">
+            {% if selected_world_id %}
+                Characters in {{ worlds.0.name }}
+            {% else %}
+                All characters across your worlds
+            {% endif %}
+        </p>
+    </div>
+    
+    <div class="mt-4 md:mt-0">
+        <button type="button" class="btn-primary" data-toggle="modal" data-target="new-character-modal">
+            Create Character
+        </button>
+    </div>
+</div>
+
+<!-- World filters -->
+{% if worlds|length > 1 %}
+<div class="mb-6">
+    <h3 class="text-lg font-bold text-secondary mb-2">Filter by World</h3>
+    <div class="flex flex-wrap gap-2">
+        <a href="{% url 'character_list' %}" class="filter-chip {% if not selected_world_id %}active{% endif %}">
+            All Worlds
+        </a>
+        
+        {% for world in worlds %}
+        <a href="{% url 'world_characters' world.id %}" class="filter-chip {% if selected_world_id == world.id %}active{% endif %}">
+            {{ world.name }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Mood filters -->
+<div class="mb-6">
+    <h3 class="text-lg font-bold text-secondary mb-2">Filter by Mood</h3>
+    <div class="mood-filter-container">
+        <span class="filter-chip active" data-mood="all">All Moods</span>
+        <span class="filter-chip" data-mood="happy">Happy</span>
+        <span class="filter-chip" data-mood="sad">Sad</span>
+        <span class="filter-chip" data-mood="angry">Angry</span>
+        <span class="filter-chip" data-mood="excited">Excited</span>
+        <span class="filter-chip" data-mood="thoughtful">Thoughtful</span>
+        <span class="filter-chip" data-mood="confused">Confused</span>
+        <span class="filter-chip" data-mood="scared">Scared</span>
+    </div>
+</div>
+
+{% if characters %}
+    <div class="character-grid">
+        {% for character in characters %}
+            <div class="character-container" data-mood="{{ character.current_mood }}">
+                {% include 'core/components/character_card.html' with character=character %}
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="glassmorphism p-8 text-center">
+        <h3 class="text-xl font-bold text-secondary mb-4">No Characters Found</h3>
+        <p class="text-neutral-light mb-6">
+            {% if selected_world_id %}
+                You haven't created any characters in this world yet.
+            {% else %}
+                You haven't created any characters yet.
+            {% endif %}
+        </p>
+        <button class="btn-primary" data-toggle="modal" data-target="new-character-modal">
+            Create Your First Character
+        </button>
+    </div>
+{% endif %}
+
+<!-- New Character Modal -->
+<div id="new-character-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="glassmorphism max-w-2xl mx-auto p-6 rounded-lg w-full">
+        <h2 class="text-xl font-bold text-secondary mb-6">Create New Character</h2>
+        
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-neutral-light font-medium mb-1">World</label>
+                    {{ form.world }}
+                </div>
+                
+                <div>
+                    <label class="block text-neutral-light font-medium mb-1">Name</label>
+                    {{ form.name }}
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-neutral-light font-medium mb-1">Role</label>
+                {{ form.role }}
+            </div>
+            
+            <div>
+                <label class="block text-neutral-light font-medium mb-1">Appearance</label>
+                {{ form.appearance }}
+            </div>
+            
+            <div>
+                <label class="block text-neutral-light font-medium mb-1">Personality</label>
+                {{ form.personality }}
+            </div>
+            
+            <div>
+                <label class="block text-neutral-light font-medium mb-1">Backstory</label>
+                {{ form.backstory }}
+            </div>
+            
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" class="btn-secondary" onclick="closeModal('new-character-modal')">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary">
+                    Create Character
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Modal control
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+    
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+    
+    // Open modal triggers
+    document.querySelectorAll('[data-toggle="modal"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            openModal(targetId);
+        });
+    });
+    
+    // Mood filtering
+    document.addEventListener('DOMContentLoaded', function() {
+        const moodFilters = document.querySelectorAll('[data-mood]');
+        const characterContainers = document.querySelectorAll('.character-container');
+        
+        moodFilters.forEach(filter => {
+            filter.addEventListener('click', function() {
+                // Remove active class from all filters
+                moodFilters.forEach(f => f.classList.remove('active'));
+                
+                // Add active class to clicked filter
+                this.classList.add('active');
+                
+                const mood = this.getAttribute('data-mood');
+                
+                // Show/hide characters based on mood
+                characterContainers.forEach(container => {
+                    if (mood === 'all') {
+                        container.style.display = 'block';
+                    } else {
+                        const characterMood = container.getAttribute('data-mood');
+                        container.style.display = (characterMood === mood) ? 'block' : 'none';
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}
