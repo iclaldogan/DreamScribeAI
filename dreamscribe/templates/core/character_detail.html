@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ character.name }} | DreamScribe AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/mood-effects.css' %}">
+<style>
+    .character-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 75px;
+        background-color: var(--color-neutral-dark);
+        border: 3px solid var(--color-primary);
+        box-shadow: 0 0 15px rgba(var(--color-primary-rgb), 0.5);
+        background-size: cover;
+        background-position: center;
+        overflow: hidden;
+        transition: all 0.5s ease;
+    }
+    
+    .character-info {
+        transition: all 0.5s ease;
+    }
+    
+    .memory-card {
+        border-left: 4px solid var(--color-primary);
+        padding-left: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .memory-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .fact-item {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.5rem;
+        animation: fadeIn 0.5s ease;
+    }
+    
+    .fact-item:before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background-color: var(--color-primary);
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .scene-card {
+        border-left: 3px solid var(--color-secondary);
+        padding-left: 0.75rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s;
+    }
+    
+    .scene-card:hover {
+        transform: translateX(3px);
+    }
+    
+    .chat-preview {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'world_detail' character.world.id %}" class="text-secondary hover:text-primary transition-colors">
+        <i class="fas fa-arrow-left mr-1"></i> Back to {{ character.world.name }}
+    </a>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Left sidebar with character info -->
+    <div class="md:col-span-1">
+        <div class="glassmorphism p-6">
+            <div class="flex flex-col items-center mb-6">
+                <div class="character-avatar mb-4 mood-{{ character.current_mood }}"
+                     style="background-image: url('{% static 'core/img/default-avatar.svg' %}');">
+                </div>
+                
+                <h1 class="text-2xl font-bold text-center text-primary mb-1">
+                    {{ character.name }}
+                    {% if character.current_mood != 'neutral' %}
+                    <span class="mood-indicator"></span>
+                    {% endif %}
+                </h1>
+                <p class="text-neutral-light opacity-80 text-center">{{ character.role }}</p>
+                
+                {% if character.current_mood != 'neutral' %}
+                <div class="mt-4 w-full">
+                    <div class="text-sm text-neutral-light flex justify-between mb-1">
+                        <span class="font-medium text-primary">{{ character.current_mood|title }}</span>
+                        <span class="text-xs">{{ character.mood_intensity }}%</span>
+                    </div>
+                    <div class="bg-neutral-dark rounded-full h-2 overflow-hidden">
+                        <div class="h-full rounded-full" 
+                             style="width: {{ character.mood_intensity }}%; background-color: var(--color-primary);"></div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="character-info space-y-5">
+                <div>
+                    <h3 class="font-bold text-secondary border-b border-neutral-dark pb-1 mb-2">Appearance</h3>
+                    <p class="text-neutral-light text-sm">{{ character.appearance }}</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-secondary border-b border-neutral-dark pb-1 mb-2">Personality</h3>
+                    <p class="text-neutral-light text-sm">{{ character.personality }}</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-secondary border-b border-neutral-dark pb-1 mb-2">Backstory</h3>
+                    <p class="text-neutral-light text-sm">{{ character.backstory }}</p>
+                </div>
+            </div>
+            
+            <div class="mt-8 flex justify-center">
+                <a href="{% url 'character_chat' character.id %}" class="btn-primary">
+                    Chat with {{ character.name }}
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main content area -->
+    <div class="md:col-span-2">
+        <!-- Character memory -->
+        <div class="glassmorphism p-6 mb-6">
+            <h2 class="text-xl font-bold text-secondary mb-4">Character Memory</h2>
+            
+            {% if memory_facts %}
+                <div class="memory-card">
+                    <h3 class="text-lg font-medium text-primary mb-3">Facts {{ character.name }} Remembers</h3>
+                    <ul class="space-y-2">
+                        {% for fact in memory_facts %}
+                            <li class="fact-item text-neutral-light">{{ fact }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% else %}
+                <div class="text-neutral-light opacity-70 text-center py-4">
+                    <p>{{ character.name }} hasn't learned any specific facts yet.</p>
+                    <p class="text-sm mt-2">Facts will be automatically remembered during conversations.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Recent messages -->
+        <div class="glassmorphism p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-secondary">Recent Conversations</h2>
+                <a href="{% url 'character_chat' character.id %}" class="text-primary hover:text-secondary transition-colors text-sm">
+                    View All <i class="fas fa-chevron-right ml-1"></i>
+                </a>
+            </div>
+            
+            {% if recent_messages %}
+                <div class="chat-preview">
+                    {% for message in recent_messages %}
+                        <div class="mb-3 {% if message.is_user_message %}text-right{% endif %}">
+                            <div class="inline-block max-w-[85%] p-3 rounded-lg {% if message.is_user_message %}bg-primary text-neutral-dark{% else %}bg-neutral-dark text-neutral-light chat-bubble-character{% endif %}">
+                                {{ message.content|truncatechars:100 }}
+                            </div>
+                            <div class="text-xs opacity-60 mt-1">
+                                {{ message.created_at|date:"M d, g:i A" }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-neutral-light opacity-70 text-center py-4">
+                    <p>No conversations with {{ character.name }} yet.</p>
+                    <a href="{% url 'character_chat' character.id %}" class="block mt-2 text-primary hover:text-secondary transition-colors">
+                        Start a conversation <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Scenes featuring this character -->
+        <div class="glassmorphism p-6">
+            <h2 class="text-xl font-bold text-secondary mb-4">Featured in Scenes</h2>
+            
+            {% if scenes %}
+                <div class="space-y-4">
+                    {% for scene in scenes %}
+                        <div class="scene-card">
+                            <a href="{% url 'scene_detail' scene.id %}" class="block hover:text-primary transition-colors">
+                                <h3 class="font-bold text-lg">{{ scene.title }}</h3>
+                                <div class="flex justify-between items-center text-sm opacity-70 mt-1">
+                                    <span>{{ scene.style_type|title }} • {{ scene.tone|title }}</span>
+                                    <span>{{ scene.created_at|date:"M d, Y" }}</span>
+                                </div>
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-neutral-light opacity-70 text-center py-4">
+                    <p>{{ character.name }} hasn't appeared in any scenes yet.</p>
+                    <a href="{% url 'scene_generator' %}?world_id={{ character.world.id }}" class="block mt-2 text-primary hover:text-secondary transition-colors">
+                        Create a scene <i class="fas fa-plus ml-1"></i>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'core/js/mood_visualizer.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize mood visualizer
+        const characterId = {{ character.id }};
+        const moodVisualizer = initMoodVisualizer(characterId, {
+            initialMood: '{{ character.current_mood }}',
+            initialIntensity: {{ character.mood_intensity }},
+            updateInterval: 30000, // Check for mood updates every 30 seconds
+        });
+    });
+</script>
+{% endblock %}

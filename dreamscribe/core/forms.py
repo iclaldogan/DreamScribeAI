@@ -1,7 +1,13 @@
+"""
+Dreamscribe AI - Forms
+
+This module contains the form classes for the application.
+"""
 from django import forms
-from .models import World, Character, Scene, ChatMessage
-from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
+from .models import World, Character, Scene, ChatMessage
 
 class WorldForm(forms.ModelForm):
     class Meta:
@@ -27,6 +33,30 @@ class CharacterForm(forms.ModelForm):
             'personality': forms.Textarea(attrs={'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20', 'rows': 3}),
             'backstory': forms.Textarea(attrs={'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20', 'rows': 4})
         }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super(CharacterForm, self).__init__(*args, **kwargs)
+        
+        if user:
+            self.fields['world'].queryset = World.objects.filter(user=user)
+    
+    def save(self, commit=True):
+        character = super(CharacterForm, self).save(commit=False)
+        
+        # Initialize memory with default structure
+        if not character.memory:
+            character.memory = {
+                'facts': [],
+                'conversations': [],
+                'relationships': {},
+                'preferences': {}
+            }
+        
+        if commit:
+            character.save()
+        
+        return character
 
 class SceneGeneratorForm(forms.Form):
     world = forms.ModelChoiceField(
@@ -61,6 +91,18 @@ class SceneGeneratorForm(forms.Form):
         ],
         widget=forms.Select(attrs={'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20'})
     )
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super(SceneGeneratorForm, self).__init__(*args, **kwargs)
+        
+        if user:
+            self.fields['world'].queryset = World.objects.filter(user=user)
+            
+            # Update included_characters queryset when world is set
+            if 'world' in self.initial:
+                world = self.initial['world']
+                self.fields['included_characters'].queryset = Character.objects.filter(world=world)
 
 class ChatMessageForm(forms.ModelForm):
     class Meta:
@@ -83,6 +125,17 @@ class SceneForm(forms.ModelForm):
             'tone': forms.Select(attrs={'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20'}),
             'included_characters': forms.SelectMultiple(attrs={'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20'})
         }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super(SceneForm, self).__init__(*args, **kwargs)
+        
+        if user:
+            self.fields['world'].queryset = World.objects.filter(user=user)
+            
+            # If world is set, filter characters by world
+            if self.instance and self.instance.world:
+                self.fields['included_characters'].queryset = Character.objects.filter(world=self.instance.world)
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(
@@ -90,7 +143,7 @@ class SignUpForm(UserCreationForm):
         help_text='Required. Enter a valid email address.',
         widget=forms.EmailInput(attrs={'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20'})
     )
-
+    
     class Meta:
         model = User
         fields = ('username', 'email', 'password1', 'password2')
@@ -100,5 +153,7 @@ class SignUpForm(UserCreationForm):
     
     def __init__(self, *args, **kwargs):
         super(SignUpForm, self).__init__(*args, **kwargs)
-        self.fields['password1'].widget = forms.PasswordInput(attrs={'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20'})
-        self.fields['password2'].widget = forms.PasswordInput(attrs={'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20'})
+        
+        # Update CSS classes for password fields
+        self.fields['password1'].widget.attrs.update({'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20'})
+        self.fields['password2'].widget.attrs.update({'class': 'w-full p-2 border rounded bg-opacity-40 bg-neutral-dark text-neutral-light border-secondary/20'})

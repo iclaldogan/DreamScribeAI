@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ scene.title }} | DreamScribe AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/mood-effects.css' %}">
+<style>
+    .scene-content {
+        line-height: 1.8;
+        font-size: 1.1rem;
+    }
+    
+    .scene-content p {
+        margin-bottom: 1.5rem;
+    }
+    
+    .character-tag {
+        display: inline-block;
+        background-color: rgba(var(--color-primary-rgb), 0.15);
+        color: var(--color-primary);
+        border-radius: 16px;
+        padding: 0.25rem 0.75rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(var(--color-primary-rgb), 0.3);
+    }
+    
+    .character-tag:hover {
+        background-color: rgba(var(--color-primary-rgb), 0.25);
+        transform: translateY(-2px);
+    }
+    
+    .scene-header {
+        position: relative;
+        padding-bottom: 1.5rem;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.2);
+    }
+    
+    .scene-header:after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100px;
+        height: 3px;
+        background-color: var(--color-primary);
+        border-radius: 2px;
+    }
+    
+    .scene-style-badge {
+        display: inline-flex;
+        align-items: center;
+        background-color: rgba(var(--color-secondary-rgb), 0.15);
+        color: var(--color-secondary);
+        border-radius: 4px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-right: 0.75rem;
+    }
+    
+    .scene-tone-badge {
+        display: inline-flex;
+        align-items: center;
+        background-color: rgba(var(--color-accent-rgb), 0.15);
+        color: var(--color-accent);
+        border-radius: 4px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'world_scenes' scene.world.id %}" class="text-secondary hover:text-primary transition-colors">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Scenes in {{ scene.world.name }}
+    </a>
+</div>
+
+<div class="glassmorphism p-8">
+    <div class="scene-header">
+        <h1 class="text-3xl font-bold text-primary mb-3">{{ scene.title }}</h1>
+        
+        <div class="flex flex-wrap items-center mb-4">
+            <span class="scene-style-badge">{{ scene.style_type|title }}</span>
+            <span class="scene-tone-badge">{{ scene.tone|title }}</span>
+        </div>
+        
+        <div class="text-sm text-neutral-light opacity-80">
+            <span>Created on {{ scene.created_at|date:"F j, Y" }}</span>
+            {% if scene.created_at != scene.updated_at %}
+                <span class="mx-2">•</span>
+                <span>Updated on {{ scene.updated_at|date:"F j, Y" }}</span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mb-6">
+        <h3 class="text-lg font-medium text-secondary mb-2">Characters in this scene:</h3>
+        <div>
+            {% for character in scene.included_characters.all %}
+                <a href="{% url 'character_detail' character.id %}" class="character-tag">
+                    {{ character.name }}
+                </a>
+            {% empty %}
+                <p class="text-neutral-light opacity-70">No specific characters included in this scene.</p>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="scene-content text-neutral-light">
+        {{ scene.content|linebreaks }}
+    </div>
+    
+    <div class="mt-8 flex justify-end space-x-4">
+        <a href="{% url 'scene_generator' %}?world_id={{ scene.world.id }}" class="btn-secondary">
+            Generate New Scene
+        </a>
+        <a href="#" class="btn-primary">
+            Edit Scene
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Any JavaScript needed for the scene detail page
+    });
+</script>
+{% endblock %}
