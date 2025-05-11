@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Chat with {{ character.name }} | DreamScribe AI{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: calc(100vh - 280px);
+        overflow-y: auto;
+        scroll-behavior: smooth;
+        padding-right: 10px;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .chat-bubble-character {
+        animation: fadeIn 0.3s ease-out;
+        border-left: 4px solid var(--color-primary);
+    }
+    
+    .chat-form {
+        position: sticky;
+        bottom: 0;
+        background: linear-gradient(to bottom, transparent, var(--color-background) 20%);
+        padding-top: 2rem;
+    }
+    
+    .character-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 60px;
+        background-color: var(--color-neutral-dark);
+        border: 3px solid var(--color-primary);
+        box-shadow: 0 0 15px rgba(var(--color-primary-rgb), 0.5);
+        background-size: cover;
+        background-position: center;
+        overflow: hidden;
+        transition: all 0.5s ease;
+    }
+    
+    .character-info {
+        border-left: 4px solid var(--color-primary);
+        transition: all 0.5s ease;
+    }
+    
+    .mood-tag {
+        position: absolute;
+        top: -10px;
+        right: 0;
+        background-color: var(--color-primary);
+        color: var(--color-background);
+        font-size: 0.8rem;
+        font-weight: bold;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+        text-transform: capitalize;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Left sidebar with character info -->
+    <div class="md:col-span-1">
+        <div class="glassmorphism p-6 relative">
+            <span class="mood-tag">{{ character_mood }}</span>
+            
+            <div class="flex flex-col items-center mb-6">
+                <div class="character-avatar mb-4" style="background-image: url('{% static 'core/img/default-avatar.jpg' %}');"></div>
+                <h1 class="text-2xl font-bold" style="color: var(--color-primary);">{{ character.name }}</h1>
+                <p class="text-sm opacity-70">{{ character.role }}</p>
+            </div>
+            
+            <div class="character-info pl-4 py-2 mb-4">
+                <h3 class="font-bold mb-1" style="color: var(--color-primary);">Appearance</h3>
+                <p class="text-sm mb-4">{{ character.appearance|truncatechars:150 }}</p>
+                
+                <h3 class="font-bold mb-1" style="color: var(--color-primary);">Personality</h3>
+                <p class="text-sm">{{ character.personality|truncatechars:150 }}</p>
+            </div>
+            
+            <div class="mt-6">
+                <h3 class="font-bold mb-2" style="color: var(--color-primary);">Current Mood</h3>
+                <div class="w-full bg-neutral-800 rounded-full h-4">
+                    <div class="h-4 rounded-full" style="width: {{ mood_intensity }}%; background-color: var(--color-primary);"></div>
+                </div>
+                <div class="flex justify-between text-xs mt-1">
+                    <span>Mild</span>
+                    <span>Intense</span>
+                </div>
+            </div>
+            
+            <a href="{% url 'character_detail' character.id %}" class="block text-center mt-6 text-sm" style="color: var(--color-primary);">
+                View Full Profile
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main chat area -->
+    <div class="md:col-span-2">
+        <div class="glassmorphism p-6" style="border-color: var(--color-primary);">
+            <h2 class="text-xl font-bold mb-6" style="color: var(--color-primary);">
+                Conversation with {{ character.name }}
+            </h2>
+            
+            <!-- Chat messages -->
+            <div id="chat-container" class="chat-container flex flex-col mb-6">
+                {% if messages %}
+                    {% for message in messages %}
+                        {% if message.is_user_message %}
+                            <div class="chat-bubble-user self-end">
+                                <p class="mb-1">{{ message.content }}</p>
+                                <span class="text-xs opacity-50">You • {{ message.created_at|date:"g:i A" }}</span>
+                            </div>
+                        {% else %}
+                            <div class="chat-bubble-character self-start">
+                                <p class="mb-1">{{ message.content }}</p>
+                                <span class="text-xs opacity-50">{{ character.name }} • {{ message.created_at|date:"g:i A" }}</span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-gray-500 my-12">
+                        <p>No messages yet. Start a conversation with {{ character.name }}!</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Message form -->
+            <div class="chat-form">
+                <form method="post" id="chat-form" class="flex">
+                    {% csrf_token %}
+                    <div class="flex-1 mr-2">
+                        {{ form.content }}
+                    </div>
+                    <button type="submit" class="btn-primary" id="send-btn">
+                        <span class="material-icons">send</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Scroll to bottom of chat on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatContainer = document.getElementById('chat-container');
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Focus the input field
+        document.querySelector('#id_content').focus();
+    });
+    
+    // Handle form submission with AJAX
+    document.getElementById('chat-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const messageInput = form.querySelector('#id_content');
+        const sendButton = document.getElementById('send-btn');
+        const chatContainer = document.getElementById('chat-container');
+        const csrfToken = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
+        
+        if (!messageInput.value.trim()) return;
+        
+        // Disable form while processing
+        messageInput.disabled = true;
+        sendButton.disabled = true;
+        
+        // Add user message to UI immediately
+        const userBubble = document.createElement('div');
+        userBubble.className = 'chat-bubble-user self-end';
+        
+        const messageText = document.createElement('p');
+        messageText.className = 'mb-1';
+        messageText.textContent = messageInput.value;
+        
+        const timestamp = document.createElement('span');
+        timestamp.className = 'text-xs opacity-50';
+        const now = new Date();
+        timestamp.textContent = `You • ${now.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`;
+        
+        userBubble.appendChild(messageText);
+        userBubble.appendChild(timestamp);
+        chatContainer.appendChild(userBubble);
+        
+        // Scroll to bottom
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Send message to server
+        fetch('', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'content': messageInput.value,
+                'csrfmiddlewaretoken': csrfToken
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Create character response bubble
+                const charBubble = document.createElement('div');
+                charBubble.className = 'chat-bubble-character self-start';
+                
+                const charMessageText = document.createElement('p');
+                charMessageText.className = 'mb-1';
+                charMessageText.textContent = data.response;
+                
+                const charTimestamp = document.createElement('span');
+                charTimestamp.className = 'text-xs opacity-50';
+                charTimestamp.textContent = `{{ character.name }} • ${now.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`;
+                
+                charBubble.appendChild(charMessageText);
+                charBubble.appendChild(charTimestamp);
+                chatContainer.appendChild(charBubble);
+                
+                // Scroll to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // Update the UI to reflect new mood after a small delay
+                setTimeout(() => {
+                    location.reload(); // Refresh to get updated mood colors
+                }, 2000);
+            } else {
+                alert('Error sending message. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending message. Please try again.');
+        })
+        .finally(() => {
+            // Reset form
+            messageInput.value = '';
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            messageInput.focus();
+        });
+    });
+</script>
+{% endblock %}

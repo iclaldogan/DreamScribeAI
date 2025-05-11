@@ -1,0 +1,375 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DreamScribe AI{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Dynamic mood colors passed from the context processor */
+            --color-primary: {{ mood_colors.primary|default:'#6B7280' }};
+            --color-secondary: {{ mood_colors.secondary|default:'#9CA3AF' }};
+            --color-accent: {{ mood_colors.accent|default:'#D1D5DB' }};
+            --color-text: {{ mood_colors.text|default:'#F3F4F6' }};
+            
+            /* Core UI colors */
+            --color-neutral-dark: #1F2937;
+            --color-neutral-medium: #4B5563;
+            --color-neutral-light: #E5E7EB;
+            --color-background: #111827;
+        }
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-neutral-light);
+            transition: all 0.5s ease;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Cinzel Decorative', cursive;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.5);
+        }
+        
+        .sidebar {
+            background-color: var(--color-neutral-dark);
+            border-right: 1px solid var(--color-secondary);
+            height: 100vh;
+            transition: all 0.5s ease;
+        }
+        
+        .sidebar-item {
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-item:hover, .sidebar-item.active {
+            border-left-color: var(--color-accent);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .glassmorphism {
+            background: rgba(31, 41, 55, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glow {
+            box-shadow: 0 0 15px rgba(var(--color-primary-rgb), 0.6);
+        }
+        
+        .card {
+            background: rgba(31, 41, 55, 0.7);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(var(--color-accent-rgb), 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-color: var(--color-accent);
+        }
+        
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: var(--color-background);
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--color-accent);
+            box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.7);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-primary);
+            border: 2px solid var(--color-primary);
+            border-radius: 0.375rem;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background-color: rgba(var(--color-primary-rgb), 0.1);
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+        
+        /* Character mood indicator */
+        .mood-indicator {
+            display: inline-block;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background-color: var(--color-primary);
+            box-shadow: 0 0 8px var(--color-primary);
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+                transform: scale(0.95);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+            100% {
+                opacity: 0.6;
+                transform: scale(0.95);
+            }
+        }
+        
+        /* Chat bubbles with mood-based colors */
+        .chat-bubble-user {
+            background-color: var(--color-neutral-medium);
+            color: var(--color-neutral-light);
+            border-radius: 18px 18px 18px 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            max-width: 80%;
+            align-self: flex-end;
+        }
+        
+        .chat-bubble-character {
+            background-color: rgba(var(--color-primary-rgb), 0.3);
+            color: var(--color-text);
+            border: 1px solid var(--color-primary);
+            border-radius: 18px 18px 4px 18px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            max-width: 80%;
+            align-self: flex-start;
+            box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.2);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 hidden md:block overflow-y-auto">
+            <div class="p-4 border-b border-neutral-700">
+                <h1 class="text-2xl font-bold text-center" style="color: var(--color-primary);">
+                    DreamScribe AI
+                </h1>
+                <p class="text-center text-sm opacity-70">Bringing worlds to life</p>
+            </div>
+            
+            <nav class="mt-6 px-2">
+                <ul>
+                    <li>
+                        <a href="{% url 'dashboard' %}" class="sidebar-item flex items-center px-4 py-3 text-gray-300 hover:text-white">
+                            <span class="material-icons mr-3" style="color: var(--color-primary);">dashboard</span>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'world_list' %}" class="sidebar-item flex items-center px-4 py-3 text-gray-300 hover:text-white">
+                            <span class="material-icons mr-3" style="color: var(--color-primary);">public</span>
+                            Worlds
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'character_list' %}" class="sidebar-item flex items-center px-4 py-3 text-gray-300 hover:text-white">
+                            <span class="material-icons mr-3" style="color: var(--color-primary);">people</span>
+                            Characters
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'scene_list' %}" class="sidebar-item flex items-center px-4 py-3 text-gray-300 hover:text-white">
+                            <span class="material-icons mr-3" style="color: var(--color-primary);">auto_stories</span>
+                            Scenes
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'scene_generator' %}" class="sidebar-item flex items-center px-4 py-3 text-gray-300 hover:text-white">
+                            <span class="material-icons mr-3" style="color: var(--color-primary);">auto_awesome</span>
+                            Scene Generator
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="absolute bottom-0 w-full p-4 border-t border-neutral-700">
+                {% if user.is_authenticated %}
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium">{{ user.username }}</p>
+                            <p class="text-xs text-gray-400">Storyteller</p>
+                        </div>
+                        <a href="{% url 'logout' %}" class="text-sm text-gray-400 hover:text-white">
+                            <span class="material-icons">logout</span>
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="flex justify-around">
+                        <a href="{% url 'login' %}" class="text-sm hover:text-white">Log In</a>
+                        <a href="{% url 'signup' %}" class="text-sm hover:text-white">Sign Up</a>
+                    </div>
+                {% endif %}
+            </div>
+        </aside>
+        
+        <!-- Mobile Header -->
+        <div class="md:hidden fixed top-0 left-0 right-0 z-50 bg-neutral-900 border-b border-neutral-700 p-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl font-bold" style="color: var(--color-primary);">DreamScribe AI</h1>
+                <button id="mobile-menu-button" class="text-white">
+                    <span class="material-icons">menu</span>
+                </button>
+            </div>
+            
+            <!-- Mobile menu dropdown -->
+            <div id="mobile-menu" class="hidden mt-2 p-2 bg-neutral-800 rounded-md">
+                <nav>
+                    <ul>
+                        <li>
+                            <a href="{% url 'dashboard' %}" class="block px-3 py-2 rounded-md hover:bg-neutral-700">
+                                <span class="material-icons align-middle mr-2" style="color: var(--color-primary);">dashboard</span>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'world_list' %}" class="block px-3 py-2 rounded-md hover:bg-neutral-700">
+                                <span class="material-icons align-middle mr-2" style="color: var(--color-primary);">public</span>
+                                Worlds
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'character_list' %}" class="block px-3 py-2 rounded-md hover:bg-neutral-700">
+                                <span class="material-icons align-middle mr-2" style="color: var(--color-primary);">people</span>
+                                Characters
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'scene_list' %}" class="block px-3 py-2 rounded-md hover:bg-neutral-700">
+                                <span class="material-icons align-middle mr-2" style="color: var(--color-primary);">auto_stories</span>
+                                Scenes
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'scene_generator' %}" class="block px-3 py-2 rounded-md hover:bg-neutral-700">
+                                <span class="material-icons align-middle mr-2" style="color: var(--color-primary);">auto_awesome</span>
+                                Scene Generator
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-6 md:p-10 {% if character_mood %}mood-{{ character_mood }}{% endif %}">
+            {% if character_mood != 'neutral' %}
+                <div class="mb-4 px-4 py-2 rounded-full inline-flex items-center" 
+                     style="background-color: rgba(var(--color-primary-rgb), 0.1); border: 1px solid var(--color-primary);">
+                    <span class="mood-indicator"></span>
+                    <span class="text-sm capitalize" style="color: var(--color-primary);">
+                        {{ character_mood }} 
+                        {% if mood_intensity > 75 %}
+                            (Very Intense)
+                        {% elif mood_intensity > 50 %}
+                            (Intense)
+                        {% elif mood_intensity > 25 %}
+                            (Moderate)
+                        {% else %}
+                            (Mild)
+                        {% endif %}
+                    </span>
+                </div>
+            {% endif %}
+            
+            {% if messages %}
+                <div class="mb-6">
+                    {% for message in messages %}
+                        <div class="p-4 mb-4 rounded-lg {% if message.tags == 'error' %}bg-red-700{% else %}bg-green-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <script>
+        // Convert CSS RGB values for JavaScript use
+        document.addEventListener('DOMContentLoaded', function() {
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary');
+            const rgbValues = hexToRgb(primaryColor.trim());
+            if (rgbValues) {
+                document.documentElement.style.setProperty('--color-primary-rgb', `${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}`);
+            }
+            
+            const secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-secondary');
+            const rgbValues2 = hexToRgb(secondaryColor.trim());
+            if (rgbValues2) {
+                document.documentElement.style.setProperty('--color-secondary-rgb', `${rgbValues2.r}, ${rgbValues2.g}, ${rgbValues2.b}`);
+            }
+            
+            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent');
+            const rgbValues3 = hexToRgb(accentColor.trim());
+            if (rgbValues3) {
+                document.documentElement.style.setProperty('--color-accent-rgb', `${rgbValues3.r}, ${rgbValues3.g}, ${rgbValues3.b}`);
+            }
+        });
+        
+        // Helper to convert hex to RGB
+        function hexToRgb(hex) {
+            // Remove # if present
+            hex = hex.replace(/^#/, '');
+            
+            // Parse components
+            const bigint = parseInt(hex, 16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+            
+            return {r, g, b};
+        }
+        
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button')?.addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

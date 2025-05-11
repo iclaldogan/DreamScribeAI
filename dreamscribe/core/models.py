@@ -14,6 +14,17 @@ class World(models.Model):
         return self.name
 
 class Character(models.Model):
+    MOOD_CHOICES = [
+        ('neutral', 'Neutral'),
+        ('happy', 'Happy'),
+        ('sad', 'Sad'),
+        ('angry', 'Angry'),
+        ('excited', 'Excited'),
+        ('thoughtful', 'Thoughtful'),
+        ('confused', 'Confused'),
+        ('scared', 'Scared'),
+    ]
+    
     world = models.ForeignKey(World, on_delete=models.CASCADE, related_name='characters')
     name = models.CharField(max_length=100)
     role = models.CharField(max_length=100)
@@ -21,6 +32,8 @@ class Character(models.Model):
     personality = models.TextField()
     backstory = models.TextField()
     memory = models.JSONField(default=dict, blank=True, null=True)
+    current_mood = models.CharField(max_length=20, choices=MOOD_CHOICES, default='neutral')
+    mood_intensity = models.IntegerField(default=50)  # 0-100 scale for intensity
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
