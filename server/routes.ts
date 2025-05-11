@@ -9,6 +9,7 @@ import {
   insertChatMessageSchema,
   insertActivityLogSchema
 } from "@shared/schema";
+import { generateCharacterResponse, analyzeMoodFromText } from "./ai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
@@ -134,6 +135,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // -----------------
   // Characters endpoints
   // -----------------
+  
+  // Get all characters
+  app.get('/api/characters', async (req: Request, res: Response) => {
+    try {
+      // For demo purposes, get all characters across all worlds
+      const worlds = await storage.getWorldsByUser(1); // Hardcoded userId for demo
+      
+      if (worlds.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get characters from all worlds
+      const allCharactersPromises = worlds.map(world => 
+        storage.getCharactersByWorld(world.id)
+      );
+      
+      const charactersNestedArray = await Promise.all(allCharactersPromises);
+      // Flatten the array of arrays
+      const allCharacters = charactersNestedArray.flat();
+      
+      res.json(allCharacters);
+    } catch (error) {
+      console.error('Error fetching all characters:', error);
+      res.status(500).json({ message: 'Error fetching all characters' });
+    }
+  });
   
   // Get all characters for a world
   app.get('/api/worlds/:worldId/characters', async (req: Request, res: Response) => {
@@ -331,6 +358,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // -------------------------
+  // Character AI Response endpoint
+  // -------------------------
+  
+  // Generate a character response
+  app.post('/api/generate-character-response', async (req: Request, res: Response) => {
+    try {
+      const { characterId } = req.body;
+      
+      if (!characterId) {
+        return res.status(400).json({ message: 'Missing characterId' });
+      }
+      
+      // Get the character
+      const character = await storage.getCharacter(parseInt(characterId));
+      
+      if (!character) {
+        return res.status(404).json({ message: 'Character not found' });
+      }
+      
+      // Get recent messages
+      const messages = await storage.getChatMessagesByCharacter(character.id);
+      
+      // Generate the response
+      const response = await generateCharacterResponse(character, messages);
+      
+      // Analyze the mood from the response
+      const moodAnalysis = await analyzeMoodFromText(response);
+      
+      // Create a new message with the generated response
+      const newMessage = await storage.createChatMessage({
+        characterId: character.id,
+        userId: 1, // Hardcoded for demo
+        isUserMessage: false,
+        content: response,
+        mood: moodAnalysis.mood,
+        moodIntensity: moodAnalysis.intensity,
+        moodColor: moodAnalysis.dominantColor
+      });
+      
+      // Update character's current mood
+      await storage.updateCharacter(character.id, {
+        currentMood: moodAnalysis.mood,
+        currentMoodIntensity: moodAnalysis.intensity,
+        currentMoodColor: moodAnalysis.dominantColor
+      });
+      
+      // Return the generated response
+      res.json({
+        message: response,
+        mood: moodAnalysis
+      });
+    } catch (error) {
+      console.error('Error generating character response:', error);
+      res.status(500).json({ message: 'Error generating character response' });
+    }
+  });
+  
   // --------------
   // Scenes endpoints
   // --------------

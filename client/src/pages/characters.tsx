@@ -37,7 +37,7 @@ export default function Characters() {
   
   // Fetch all characters
   const { data: allCharacters, isLoading: isLoadingCharacters } = useQuery<Character[]>({
-    queryKey: ['/api/worlds/1/characters'], // This is a hack - we need all characters
+    queryKey: ['/api/characters'], // Now using the dedicated endpoint for all characters
     staleTime: 60000,
   });
   
@@ -74,7 +74,16 @@ export default function Characters() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/worlds/1/characters'] });
+      // Invalidate all character queries
+      queryClient.invalidateQueries({ queryKey: ['/api/characters'] });
+      
+      // Also invalidate the specific world characters query to ensure consistency
+      if (values.worldId) {
+        queryClient.invalidateQueries({ 
+          queryKey: [`/api/worlds/${values.worldId}/characters`] 
+        });
+      }
+      
       setIsDialogOpen(false);
       form.reset();
       
