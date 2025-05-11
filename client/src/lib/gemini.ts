@@ -67,6 +67,7 @@ interface CharacterChatRequest {
     memory: any;
   };
   userMessage: string;
+  characterId?: number; // Optional for backwards compatibility
 }
 
 // Interface for scene generation request

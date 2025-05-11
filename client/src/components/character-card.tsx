@@ -110,13 +110,37 @@ export default function CharacterCard({ character, compact = false, className }:
             <h4 className="font-bold text-accent">{character.name}</h4>
             <p className="text-xs text-neutral-light">{character.role} • {interactionCount} memories</p>
           </div>
-          <Link href={`/chat/${character.id}`}>
-            <a className="text-accent hover:text-secondary">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </a>
-          </Link>
+          <div className="flex items-center space-x-2">
+            <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-500 hover:bg-red-500/10">
+                  <Trash2 size={18} />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Character</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete {character.name}? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <Link href={`/chat/${character.id}`}>
+              <a className="text-accent hover:text-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </a>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -154,11 +178,35 @@ export default function CharacterCard({ character, compact = false, className }:
             ></div>
           </div>
         </div>
-        <Link href={`/chat/${character.id}`}>
-          <a className="block w-full bg-accent/20 hover:bg-accent/30 text-accent py-2 rounded-lg transition duration-300 text-sm text-center">
-            Chat with {character.name.split(' ')[0]}
-          </a>
-        </Link>
+        <div className="flex space-x-2">
+          <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="flex-1">
+                <Trash2 size={16} className="mr-1" /> Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Character</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete {character.name}? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
+          <Link href={`/chat/${character.id}`}>
+            <a className="flex-1 bg-accent/20 hover:bg-accent/30 text-accent py-2 rounded-lg transition duration-300 text-sm text-center">
+              Chat with {character.name.split(' ')[0]}
+            </a>
+          </Link>
+        </div>
       </div>
     </div>
   );

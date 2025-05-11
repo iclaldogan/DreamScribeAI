@@ -100,6 +100,7 @@ export default function CharacterChat() {
           memory: character.memory,
         },
         userMessage,
+        characterId, // Pass the characterId for the API request
       });
       
       // Create AI message
