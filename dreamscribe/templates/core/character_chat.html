@@ -4,6 +4,7 @@
 {% block title %}Chat with {{ character.name }} | DreamScribe AI{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/mood-effects.css' %}">
 <style>
     .chat-container {
         height: calc(100vh - 280px);
@@ -65,6 +66,40 @@
         border-radius: 12px;
         box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
         text-transform: capitalize;
+    }
+    
+    /* Mood-based animations for this specific character */
+    .character-avatar.mood-happy {
+        animation: pulse-happy 3s infinite;
+    }
+    
+    .character-avatar.mood-sad {
+        animation: pulse-sad 4s infinite;
+        opacity: 0.8;
+    }
+    
+    .character-avatar.mood-angry {
+        animation: pulse-angry 0.8s infinite;
+        border-color: var(--color-primary);
+        border-width: 4px;
+    }
+    
+    .character-avatar.mood-excited {
+        animation: pulse-excited 2s infinite;
+        border-width: 4px;
+    }
+    
+    .character-avatar.mood-thoughtful {
+        transform: translateY(-5px);
+    }
+    
+    .character-avatar.mood-confused {
+        animation: pulse-confused 2s infinite;
+    }
+    
+    .character-avatar.mood-scared {
+        opacity: 0.7;
+        transform: scale(0.95);
     }
 </style>
 {% endblock %}

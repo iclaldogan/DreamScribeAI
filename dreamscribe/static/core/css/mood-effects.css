@@ -1,0 +1,153 @@
+/**
+ * Dreamscribe AI - Mood-based UI effects
+ */
+
+/* Color transitions for mood changes */
+.color-transition {
+    transition: all 1s ease;
+}
+
+.color-transition * {
+    transition: color 1s ease, background-color 1s ease, border-color 1s ease, box-shadow 1s ease;
+}
+
+/* Mood-specific animations */
+@keyframes pulse-happy {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes pulse-sad {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+    100% { transform: translateY(0); }
+}
+
+@keyframes pulse-angry {
+    0% { transform: rotate(0); }
+    25% { transform: rotate(-1deg); }
+    75% { transform: rotate(1deg); }
+    100% { transform: rotate(0); }
+}
+
+@keyframes pulse-excited {
+    0% { transform: scale(1) rotate(0); }
+    25% { transform: scale(1.02) rotate(-1deg); }
+    50% { transform: scale(1.05) rotate(0); }
+    75% { transform: scale(1.02) rotate(1deg); }
+    100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes pulse-confused {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+    100% { transform: translateX(0); }
+}
+
+@keyframes glow {
+    0% { box-shadow: 0 0 5px rgba(var(--color-primary-rgb), 0.5); }
+    50% { box-shadow: 0 0 15px rgba(var(--color-primary-rgb), 0.7); }
+    100% { box-shadow: 0 0 5px rgba(var(--color-primary-rgb), 0.5); }
+}
+
+/* Mood indicator styling */
+.mood-indicator {
+    position: relative;
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    margin-right: 5px;
+    animation: glow 2s infinite;
+}
+
+/* Apply different animations based on mood */
+.mood-happy .mood-indicator {
+    animation: pulse-happy 2s infinite, glow 2s infinite;
+}
+
+.mood-sad .mood-indicator {
+    animation: pulse-sad 3s infinite, glow 3s infinite;
+}
+
+.mood-angry .mood-indicator {
+    animation: pulse-angry 0.5s infinite, glow 2s infinite;
+}
+
+.mood-excited .mood-indicator {
+    animation: pulse-excited 1s infinite, glow 1.5s infinite;
+}
+
+.mood-confused .mood-indicator {
+    animation: pulse-confused 1.5s infinite, glow 2s infinite;
+}
+
+/* Character card mood-specific effects */
+.character-card[data-mood="happy"] {
+    transform: translateY(-3px);
+}
+
+.character-card[data-mood="sad"] {
+    opacity: 0.9;
+}
+
+.character-card[data-mood="angry"] {
+    transform: rotate(-1deg);
+}
+
+.character-card[data-mood="excited"] {
+    transform: scale(1.02);
+}
+
+.character-card[data-mood="confused"] {
+    transform: rotate(1deg);
+}
+
+/* Chat bubble mood-specific styles */
+.chat-bubble-character {
+    position: relative;
+    overflow: hidden;
+}
+
+.chat-bubble-character::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: radial-gradient(circle at top right, 
+                              rgba(var(--color-primary-rgb), 0.2), 
+                              transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+.chat-bubble-character:hover::after {
+    opacity: 1;
+}
+
+/* Mood-specific chat bubble styles */
+.mood-happy .chat-bubble-character {
+    border-left-width: 4px;
+}
+
+.mood-angry .chat-bubble-character {
+    border-top-width: 4px;
+}
+
+.mood-sad .chat-bubble-character {
+    border-bottom-width: 4px;
+}
+
+.mood-excited .chat-bubble-character {
+    box-shadow: 0 0 15px rgba(var(--color-primary-rgb), 0.4);
+}
+
+.mood-confused .chat-bubble-character {
+    border-style: dashed;
+}
